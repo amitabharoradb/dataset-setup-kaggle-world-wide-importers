@@ -3,9 +3,12 @@ Project to create Kaggle's World Wide Importers dataset into you own Unity Catal
 
 [**Inspired by Robert Mosley's notenook**](https://e2-demo-field-eng.cloud.databricks.com/editor/notebooks/634720160573407?o=1444828305810485#command/634720160573408)
 
-## Prerequisite: Kaggle Account Setup & dowload secrets file
+## 1. Prerequisite: Specify non-default catalog
+Edit the ./config file if you want to cahge the catalog and schema name where you want to import the dataset
 
-#### Create Kaggle Account
+## 2. Prerequisite: Kaggle Account & Database Secret Setup
+
+#### 2.1 Create Kaggle Account
 Please go to *kaggle.com*, create an account, and download the credentials file.
 See instructions [here](https://christianjmills.com/posts/kaggle-obtain-api-key-tutorial/)
 
@@ -18,7 +21,7 @@ The format of the Kaggle file will be
 }
 ```
 
-### Create Databricks secret scope if it does not exist
+#### 2.2 Create Databricks secret scope if it does not exist
 
 Use the Databricks CLI tool for below instructions.
 
