@@ -19,17 +19,6 @@ secrets_scope = dbutils.widgets.get("secrets_scope")
 
 # COMMAND ----------
 
-# Parameters
-dbutils.widgets.text("catalog_name", {default_catalog})
-dbutils.widgets.text("schema_name", {default_schema})
-dbutils.widgets.text("secrets_scope", {default_scope})
-
-catalog_name = dbutils.widgets.get("catalog_name")
-schema_name = dbutils.widgets.get("schema_name")
-secrets_scope = dbutils.widgets.get("secrets_scope")
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Load kaggle credentials from Databricks Secrets
 # MAGIC Please read the Readme.md if kaggle credentials does not exist or are expired
