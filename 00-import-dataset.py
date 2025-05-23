@@ -1,12 +1,17 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## Define parameters to the notebook
+# MAGIC ## Define notebook defaults and parameters
 
 # COMMAND ----------
 
-# MAGIC %run ./_resources
+# define default parameters
+# notebook user
+notebook_user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+notebook_user = notebook_user.split('@')[0].replace('.', '_')
 
-# COMMAND ----------
+# default catalog/schema
+default_catalog = notebook_user + "_catalog"
+default_schema = "kaggle_world_wide_importers"
 
 # Parameters
 dbutils.widgets.text("catalog_name", default_catalog)
@@ -15,82 +20,66 @@ dbutils.widgets.text("secrets_scope", default_scope)
 
 catalog_name = dbutils.widgets.get("catalog_name")
 schema_name = dbutils.widgets.get("schema_name")
-secrets_scope = dbutils.widgets.get("secrets_scope")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Load kaggle credentials from Databricks Secrets
-# MAGIC Please read the Readme.md if kaggle credentials does not exist or are expired
+# MAGIC ## Create catalog and schema if not already exist
 
 # COMMAND ----------
 
-kaggle_username = dbutils.secrets.get(scope = secrets_scope, key = "kaggle_username")
-kaggle_key = dbutils.secrets.get(scope = secrets_scope, key = "kaggle_key")
+# DBTITLE 1,create if not already exists
+# Create catalog if it does not exists
+catalog_exists = spark.sql(f"SHOW CATALOGS LIKE '{catalog_name}'").count() > 0
 
-# COMMAND ----------
+if not catalog_exists:
+    spark.sql(f"CREATE CATALOG {catalog_name}")
 
-# MAGIC %md
-# MAGIC ## Load Kaggle Supply Chain dataset into your catalog and your schema
-# MAGIC
-# MAGIC **NOTE**: This notbook deletes the existing schema and re-creates to ensure clean data
-
-# COMMAND ----------
-
-# DBTITLE 1,kaggle dataset specifications
-kaggle_url = "https://www.kaggle.com/datasets/pauloviniciusornelas/wwimporters"
-kaggle_dataset_user = 'pauloviniciusornelas'
-kaggle_dataset_name = 'wwimporters'
-kaggle_dataset_id = f"{kaggle_dataset_user}/{kaggle_dataset_name}"
-
-# folder location where the data will be downloaded and unzipped
-dataset_downloads_volume_name = "downloads"
-dataset_download_location = f"/Volumes/{catalog_name}/{schema_name}/{dataset_downloads_volume_name}"
-print(dataset_download_location)
-
-# COMMAND ----------
-
-# DBTITLE 1,Load Kaggle Secrets file
-import os
-
-# secrets_json = None
-# with open(kaggle_secrets_file) as json_file:
-#     secrets_json = json.load(json_file)
-
-# Environment variables for authentication
-os.environ['KAGGLE_USERNAME'] = kaggle_username
-os.environ['KAGGLE_KEY'] = kaggle_key
-
-# COMMAND ----------
-
-# DBTITLE 1,re-crrate schema and download location
+# Drop and recreate schema if it already exists
 spark.sql(f"DROP SCHEMA IF EXISTS {catalog_name}.{schema_name} CASCADE")
 spark.sql(f"CREATE SCHEMA {catalog_name}.{schema_name}")
 
-spark.sql(f"CREATE VOLUME IF NOT EXISTS {catalog_name}.{schema_name}.{dataset_downloads_volume_name}")
-
 # COMMAND ----------
 
-# DBTITLE 1,set use catalog and schema
-# Set the catalog and schema to use
+# DBTITLE 1,USE catalog/schema
 spark.sql(f"USE CATALOG {catalog_name}")
 spark.sql(f"USE SCHEMA {schema_name}")
 
 # COMMAND ----------
 
-!pip install kaggle
+# MAGIC %md
+# MAGIC ## Copy Kaggle csv files from the repo to UC volume
 
 # COMMAND ----------
 
-# DBTITLE 1,download the dataset file from kaggle
-# Code references from this nice youtube video: https://www.youtube.com/watch?v=hzcV0hDkfzs
+# DBTITLE 1,Define Volume location
+# folder location where the data will be downloaded and unzipped
+leaf_name = "downloads"
+dataset_downloads_volume_path = f"/Volumes/{catalog_name}/{schema_name}/{leaf_name}"
+print(dataset_downloads_volume_path)
 
-import kaggle
-kaggle.api.authenticate()
+# COMMAND ----------
 
-kaggle.api.dataset_download_files(kaggle_dataset_id, path=dataset_download_location, unzip=True)
-kaggle.api.dataset_metadata(kaggle_dataset_id, path=dataset_download_location)
+# DBTITLE 1,Re-create volume
+spark.sql(f"DROP VOLUME IF EXISTS `{leaf_name}`")
+spark.sql(f"CREATE VOLUME `{leaf_name}` COMMENT 'Volume for dataset downloads'")
 
+# COMMAND ----------
+
+# DBTITLE 1,Copy CSV files from repo to volume
+import shutil
+
+source_folder = "./data/"
+destination_folder = dataset_downloads_volume_path
+
+shutil.copytree(source_folder, destination_folder, dirs_exist_ok=True)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Load Kaggle Supply Chain CSV dataset files into your catalog and your schema
+# MAGIC
+# MAGIC **NOTE**: This notbook deletes the existing schema and re-creates to ensure clean data
 
 # COMMAND ----------
 
@@ -110,7 +99,7 @@ def get_csv_files(directory_path):
 # COMMAND ----------
 
 # DBTITLE 1,get an array of CSV files
-csv_files = get_csv_files(dataset_download_location)
+csv_files = get_csv_files(destination_folder)
 print(len(csv_files))
 
 # COMMAND ----------
@@ -144,7 +133,7 @@ for csv_file in csv_files:
 # COMMAND ----------
 
 # DBTITLE 1,delete Kaggle download volume
-spark.sql(f"DROP VOLUME IF EXISTS {catalog_name}.{schema_name}.{dataset_downloads_volume_name}")
+spark.sql(f"DROP VOLUME IF EXISTS {catalog_name}.{schema_name}.{leaf_name}")
 
 # COMMAND ----------
 
