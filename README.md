@@ -4,7 +4,7 @@ Project to create Kaggle's World Wide Importers dataset into you own Unity Catal
 [**Inspired by Robert Mosley's notenook**](https://e2-demo-field-eng.cloud.databricks.com/editor/notebooks/634720160573407?o=1444828305810485#command/634720160573408)
 
 ## 1. Prerequisite: Specify non-default catalog
-Edit the ./config file if you want to cahge the catalog and schema name where you want to import the dataset
+Choose the parameters accordingle for your catalog and schema in the 00-import-dataset notebook
 
 ## 2. Prerequisite: Kaggle Account & Database Secret Setup
 
