@@ -16,7 +16,6 @@ default_schema = "kaggle_world_wide_importers"
 # Parameters
 dbutils.widgets.text("catalog_name", default_catalog)
 dbutils.widgets.text("schema_name", default_schema)
-dbutils.widgets.text("secrets_scope", default_scope)
 
 catalog_name = dbutils.widgets.get("catalog_name")
 schema_name = dbutils.widgets.get("schema_name")
